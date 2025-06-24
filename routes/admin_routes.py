@@ -33,7 +33,7 @@ def dashboard():
             'total_files': len(files),
             'total_sessions': len(sessions),
             'total_messages': total_messages,
-            'recent_files': files[:5] if files else [],
+            'recent_files': files[:2] if files else [],
             'recent_sessions': sessions[:5] if sessions else []
         }
         
