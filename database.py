@@ -237,6 +237,143 @@ def get_chat_history(session_uuid):
     finally:
         cursor.close()
         conn.close()
+        
+def get_chat_sessions_summary():
+    """Get summary of all chat sessions with first occurrence only"""
+    conn = get_db_connection()
+    if conn is None:
+        return []
+    cursor = conn.cursor(dictionary=True)
+    try:
+        query = """
+        SELECT 
+            session_uuid,
+            MIN(created_at) as created_at,
+            COUNT(*) as message_count,
+            MIN(CASE WHEN user_query IS NOT NULL THEN user_query END) as first_user_message,
+            MAX(CASE WHEN user_query IS NOT NULL THEN user_query END) as last_user_message
+        FROM chat_logs 
+        GROUP BY session_uuid 
+        ORDER BY MIN(created_at) DESC
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    except Error as e:
+        print(f"Error getting chat sessions summary: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_chat_history_by_session(session_uuid):
+    """Delete all chat history for a specific session"""
+    conn = get_db_connection()
+    if conn is None:
+        return 0
+    cursor = conn.cursor()
+    try:
+        query = "DELETE FROM chat_logs WHERE session_uuid = %s"
+        cursor.execute(query, (session_uuid,))
+        conn.commit()
+        return cursor.rowcount
+    except Error as e:
+        print(f"Error deleting chat history: {e}")
+        return 0
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_file_by_id(file_id):
+    """Get file info by ID"""
+    conn = get_db_connection()
+    if conn is None:
+        return None
+    cursor = conn.cursor(dictionary=True)
+    try:
+        query = "SELECT * FROM uploaded_files WHERE id = %s"
+        cursor.execute(query, (file_id,))
+        return cursor.fetchone()
+    except Error as e:
+        print(f"Error getting file by ID: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_file_from_db(file_id):
+    """Delete file record from database"""
+    conn = get_db_connection()
+    if conn is None:
+        return False
+    cursor = conn.cursor()
+    try:
+        query = "DELETE FROM uploaded_files WHERE id = %s"
+        cursor.execute(query, (file_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Error as e:
+        print(f"Error deleting file from database: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_admin_user_by_username(username):
+    """Get admin user by username"""
+    conn = get_db_connection()
+    if conn is None:
+        return None
+    cursor = conn.cursor(dictionary=True)
+    try:
+        query = "SELECT * FROM users WHERE username = %s AND is_admin = TRUE"
+        cursor.execute(query, (username,))
+        return cursor.fetchone()
+    except Error as e:
+        print(f"Error getting admin user: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def insert_file_and_return_id(filename, filepath, file_type, uploader_id=1):
+    """Insert file and return the inserted ID"""
+    conn = get_db_connection()
+    if conn is None:
+        return None
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO uploaded_files (filename, filepath, file_type, uploader_id) VALUES (%s, %s, %s, %s)",
+            (filename, filepath, file_type, uploader_id)
+        )
+        conn.commit()
+        file_id = cursor.lastrowid
+        print(f"File '{filename}' berhasil dicatat di database dengan ID: {file_id}")
+        return file_id
+    except Error as e:
+        print(f"Error saat mencatat file: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_total_message_count():
+    """Get total message count from chat_logs"""
+    conn = get_db_connection()
+    if conn is None:
+        return 0
+    cursor = conn.cursor()
+    try:
+        query = "SELECT COUNT(*) as total FROM chat_logs"
+        cursor.execute(query)
+        result = cursor.fetchone()
+        return result[0] if result else 0
+    except Error as e:
+        print(f"Error getting total message count: {e}")
+        return 0
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     print("Menginisialisasi database...")

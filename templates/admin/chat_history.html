@@ -1,0 +1,665 @@
+{% extends "layouts/base.html" %} {% block title %}Chat History - GiziAI Admin{%
+endblock title %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card my-4">
+      <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
+        <div
+          class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3"
+        >
+          <div class="row">
+            <div class="col-lg-8 col-7">
+              <h6 class="text-white text-capitalize ps-3">
+                Chat History Management
+              </h6>
+              <p class="text-sm text-white ps-3 mb-0">
+                Monitor and manage digital human conversations
+              </p>
+            </div>
+            <div class="col-lg-4 col-5 my-auto text-end">
+              <button
+                class="btn btn-outline-white btn-sm mb-0 me-3"
+                onclick="refreshSessions()"
+              >
+                <i class="material-icons text-sm">refresh</i>&nbsp;&nbsp;Refresh
+              </button>
+              <button
+                class="btn btn-outline-white btn-sm mb-0 me-3"
+                onclick="exportSessions()"
+              >
+                <i class="material-icons text-sm">download</i>&nbsp;&nbsp;Export
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Stats -->
+      <div class="card-body px-4 pt-4 pb-2">
+        <div class="row">
+          <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-blog card-plain">
+              <div class="card-header p-0 mt-n4 mx-3">
+                <a class="d-block shadow-xl border-radius-xl">
+                  <div
+                    class="bg-gradient-success shadow-success border-radius-lg pt-4 pb-3 text-center"
+                  >
+                    <i class="material-icons text-white text-3xl">chat</i>
+                  </div>
+                </a>
+              </div>
+              <div class="card-body p-3">
+                <h5>Total Sessions</h5>
+                <p class="mb-0 text-sm" id="totalSessions">
+                  {{ sessions|length }} sessions
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-blog card-plain">
+              <div class="card-header p-0 mt-n4 mx-3">
+                <a class="d-block shadow-xl border-radius-xl">
+                  <div
+                    class="bg-gradient-info shadow-info border-radius-lg pt-4 pb-3 text-center"
+                  >
+                    <i class="material-icons text-white text-3xl">today</i>
+                  </div>
+                </a>
+              </div>
+              <div class="card-body p-3">
+                <h5>Today</h5>
+                <p class="mb-0 text-sm" id="todaySessions">Loading...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card card-blog card-plain">
+              <div class="card-header p-0 mt-n4 mx-3">
+                <a class="d-block shadow-xl border-radius-xl">
+                  <div
+                    class="bg-gradient-warning shadow-warning border-radius-lg pt-4 pb-3 text-center"
+                  >
+                    <i class="material-icons text-white text-3xl">forum</i>
+                  </div>
+                </a>
+              </div>
+              <div class="card-body p-3">
+                <h5>Avg Messages</h5>
+                <p class="mb-0 text-sm" id="avgMessages">Loading...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-sm-6">
+            <div class="card card-blog card-plain">
+              <div class="card-header p-0 mt-n4 mx-3">
+                <a class="d-block shadow-xl border-radius-xl">
+                  <div
+                    class="bg-gradient-dark shadow-dark border-radius-lg pt-4 pb-3 text-center"
+                  >
+                    <i class="material-icons text-white text-3xl">schedule</i>
+                  </div>
+                </a>
+              </div>
+              <div class="card-body p-3">
+                <h5>Last Activity</h5>
+                <p class="mb-0 text-sm" id="lastActivity">Loading...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sessions Table -->
+      <div class="card-body px-0 pb-2">
+        <div class="table-responsive p-0">
+          <table class="table align-items-center mb-0" id="sessionsTable">
+            <thead>
+              <tr>
+                <th
+                  class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                >
+                  Session Info
+                </th>
+                <th
+                  class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                >
+                  Messages
+                </th>
+                <th
+                  class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                >
+                  Duration
+                </th>
+                <th
+                  class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                >
+                  Last Activity
+                </th>
+                <th class="text-secondary opacity-7">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sessionsTableBody">
+              {% if sessions %} {% for session in sessions %}
+              <tr data-session-uuid="{{ session.session_uuid }}">
+                <td>
+                  <div class="d-flex px-2 py-1">
+                    <div>
+                      <div class="avatar avatar-sm me-3 bg-gradient-info">
+                        <span class="text-white text-xs font-weight-bold"
+                          >{{ loop.index }}</span
+                        >
+                      </div>
+                    </div>
+                    <div class="d-flex flex-column justify-content-center">
+                      <h6 class="mb-0 text-sm">
+                        <code class="text-xs"
+                          >{{ session.session_uuid[:12] }}...</code
+                        >
+                      </h6>
+                      <p
+                        class="text-xs text-secondary mb-0"
+                        title="{{ session.first_user_message }}"
+                      >
+                        {% if session.first_user_message %} {{
+                        session.first_user_message[:40] }}{{ '...' if
+                        session.first_user_message|length > 40 else '' }} {%
+                        else %} No first message {% endif %}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex flex-column justify-content-center">
+                    <h6 class="mb-0 text-sm">{{ session.message_count }}</h6>
+                    <p class="text-xs text-secondary mb-0">messages</p>
+                  </div>
+                </td>
+                <td class="align-middle text-center text-sm">
+                  <span class="badge badge-sm bg-gradient-success">
+                    {% if session.created_at %} Active {% else %} Unknown {%
+                    endif %}
+                  </span>
+                </td>
+                <td class="align-middle text-center">
+                  <span class="text-secondary text-xs font-weight-bold">
+                    {{ session.created_at.strftime('%d %b %Y') if
+                    session.created_at else 'Unknown' }}
+                  </span>
+                  <br />
+                  <span class="text-xs text-secondary">
+                    {{ session.created_at.strftime('%H:%M') if
+                    session.created_at else '' }}
+                  </span>
+                </td>
+                <td class="align-middle">
+                  <div class="ms-auto">
+                    <button
+                      class="btn btn-link text-info text-gradient px-3 mb-0"
+                      onclick="viewSession('{{ session.session_uuid }}')"
+                    >
+                      <i class="material-icons text-sm me-2">visibility</i>View
+                    </button>
+                    <button
+                      class="btn btn-link text-danger text-gradient px-3 mb-0"
+                      onclick="deleteSession('{{ session.session_uuid }}', {{ session.message_count }})"
+                    >
+                      <i class="material-icons text-sm me-2">delete</i>Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %} {% else %}
+              <tr id="noSessionsRow">
+                <td colspan="5" class="text-center py-4">
+                  <div class="text-center">
+                    <i class="material-icons opacity-5" style="font-size: 4rem"
+                      >chat_bubble_outline</i
+                    >
+                    <h6 class="text-secondary">No chat sessions found</h6>
+                    <p class="text-sm text-secondary">
+                      Chat sessions will appear here when users interact with
+                      the digital human
+                    </p>
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Table Footer with Info -->
+      <div class="card-footer">
+        <div class="row align-items-center">
+          <div class="col-lg-6">
+            <p class="text-sm mb-0">
+              <i class="fa fa-info-circle text-info" aria-hidden="true"></i>
+              Only unique sessions are shown for deletion control
+            </p>
+          </div>
+          <div class="col-lg-6 text-end">
+            <p class="text-sm mb-0">
+              <strong>Note:</strong> Deleting a session removes all messages
+              with the same session UUID
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Session Modal -->
+<div
+  class="modal fade"
+  id="viewSessionModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="viewSessionModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-weight-normal" id="viewSessionModalLabel">
+          Chat Session Details
+        </h5>
+        <button
+          type="button"
+          class="btn-close text-dark"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6>Session UUID:</h6>
+            <code id="modalSessionUuid" class="text-sm"></code>
+          </div>
+          <div class="col-md-3">
+            <h6>Messages:</h6>
+            <span id="modalMessageCount" class="badge bg-gradient-info"></span>
+          </div>
+          <div class="col-md-3">
+            <h6>Status:</h6>
+            <span class="badge bg-gradient-success">Active</span>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-12">
+            <h6>First Message:</h6>
+            <div class="alert alert-light" id="modalFirstMessage">
+              Loading...
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-12">
+            <h6>Last Message:</h6>
+            <div class="alert alert-light" id="modalLastMessage">
+              Loading...
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Created:</h6>
+            <p class="text-sm" id="modalCreatedAt">Loading...</p>
+          </div>
+          <div class="col-md-6">
+            <h6>Last Activity:</h6>
+            <p class="text-sm" id="modalLastActivity">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn bg-gradient-secondary"
+          data-bs-dismiss="modal"
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          class="btn bg-gradient-primary"
+          onclick="exportSession()"
+        >
+          <i class="material-icons text-sm">download</i>&nbsp;&nbsp;Export
+          Session
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Session Confirmation Modal -->
+<div
+  class="modal fade"
+  id="deleteSessionModal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="deleteSessionModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title font-weight-normal" id="deleteSessionModalLabel">
+          Confirm Delete Session
+        </h5>
+        <button
+          type="button"
+          class="btn-close text-dark"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <i class="material-icons text-warning" style="font-size: 3rem"
+            >warning</i
+          >
+          <h6 class="mt-2">Delete Chat Session?</h6>
+          <div class="alert alert-warning text-dark">
+            <strong>Warning!</strong> You are about to delete all chat history
+            for session:
+          </div>
+          <div class="mt-3 text-start">
+            <strong>Session UUID:</strong> <code id="deleteSessionUuid"></code
+            ><br />
+            <strong>Total Messages:</strong>
+            <span id="deleteSessionMessageCount"></span> messages<br />
+            <strong>First Message:</strong> "<span
+              id="deleteSessionFirstMessage"
+            ></span
+            >"
+          </div>
+          <div class="mt-3">
+            <small class="text-muted">
+              <i class="material-icons text-sm">info</i>
+              This action will delete all messages in this session and cannot be
+              undone.
+            </small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn bg-gradient-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn bg-gradient-danger"
+          id="confirmDeleteSessionBtn"
+        >
+          <i class="material-icons text-sm">delete</i>&nbsp;&nbsp;Delete Session
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} {% block javascripts %}
+<script>
+  let currentDeleteSessionUuid = null;
+  let currentViewSessionUuid = null;
+
+  // Calculate and display session statistics
+  function updateSessionStats() {
+    const sessions = {{ sessions|tojson }};
+
+    // Calculate stats
+    const totalSessions = sessions.length;
+    const today = new Date().toDateString();
+    const todayCount = sessions.filter(s => new Date(s.created_at).toDateString() === today).length;
+    const avgMessages = totalSessions > 0 ? Math.round(sessions.reduce((sum, s) => sum + s.message_count, 0) / totalSessions) : 0;
+    const lastActivity = sessions.length > 0 ? new Date(Math.max(...sessions.map(s => new Date(s.created_at)))).toLocaleString() : 'No activity';
+
+    // Update UI
+    document.getElementById('totalSessions').textContent = `${totalSessions} sessions`;
+    document.getElementById('todaySessions').textContent = `${todayCount} sessions`;
+    document.getElementById('avgMessages').textContent = `${avgMessages} per session`;
+    document.getElementById('lastActivity').textContent = lastActivity;
+  }
+
+  // View session details
+  function viewSession(sessionUuid) {
+    currentViewSessionUuid = sessionUuid;
+
+    // Find session data
+    const sessions = {{ sessions|tojson }};
+    const session = sessions.find(s => s.session_uuid === sessionUuid);
+
+    if (session) {
+      document.getElementById('modalSessionUuid').textContent = session.session_uuid;
+      document.getElementById('modalMessageCount').textContent = session.message_count + ' messages';
+      document.getElementById('modalFirstMessage').textContent = session.first_user_message || 'No first message';
+      document.getElementById('modalLastMessage').textContent = session.last_user_message || 'No last message';
+      document.getElementById('modalCreatedAt').textContent = new Date(session.created_at).toLocaleString();
+      document.getElementById('modalLastActivity').textContent = new Date(session.created_at).toLocaleString();
+    }
+
+    $('#viewSessionModal').modal('show');
+  }
+
+  // Delete session function
+  function deleteSession(sessionUuid, messageCount) {
+    currentDeleteSessionUuid = sessionUuid;
+
+    // Find session data in table
+    const row = document.querySelector(`tr[data-session-uuid="${sessionUuid}"]`);
+    const firstMessage = row ? row.querySelector('td p').textContent : 'Unknown';
+
+    // Update modal content
+    document.getElementById('deleteSessionUuid').textContent = sessionUuid;
+    document.getElementById('deleteSessionMessageCount').textContent = messageCount;
+    document.getElementById('deleteSessionFirstMessage').textContent = firstMessage;
+
+    $('#deleteSessionModal').modal('show');
+  }
+
+  // Confirm delete session
+  document.getElementById('confirmDeleteSessionBtn').addEventListener('click', function() {
+      if (!currentDeleteSessionUuid) return;
+
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="material-icons text-sm">hourglass_empty</i>&nbsp;&nbsp;Deleting...';
+
+      // FIX: Construct URL properly without Flask template processing
+      const deleteUrl = '/admin/api/chat-sessions/' + encodeURIComponent(currentDeleteSessionUuid);
+
+      $.ajax({
+      url: deleteUrl,  // Use constructed URL instead of template
+      type: 'DELETE',
+      success: function(response) {
+          if (response.success) {
+          showAlert('success', response.message);
+          $('#deleteSessionModal').modal('hide');
+          refreshSessions();
+          } else {
+          showAlert('danger', response.message);
+          }
+      },
+      error: function(xhr) {
+          const response = xhr.responseJSON || {};
+          showAlert('danger', response.message || 'Delete failed');
+      },
+      complete: function() {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="material-icons text-sm">delete</i>&nbsp;&nbsp;Delete Session';
+          currentDeleteSessionUuid = null;
+      }
+      });
+  });
+
+  // Refresh sessions function
+  function refreshSessions() {
+    $.ajax({
+      url: '{{ url_for("admin.api_get_chat_sessions") }}',
+      type: 'GET',
+      success: function(response) {
+        if (response.success) {
+          updateSessionsTable(response.data);
+          updateSessionStats();
+        }
+      },
+      error: function() {
+        showAlert('danger', 'Failed to refresh sessions');
+      }
+    });
+  }
+
+  // Update sessions table
+  function updateSessionsTable(sessions) {
+    const tbody = document.getElementById('sessionsTableBody');
+    tbody.innerHTML = '';
+
+    if (sessions.length === 0) {
+      tbody.innerHTML = `
+        <tr id="noSessionsRow">
+          <td colspan="5" class="text-center py-4">
+            <div class="text-center">
+              <i class="material-icons opacity-5" style="font-size: 4rem;">chat_bubble_outline</i>
+              <h6 class="text-secondary">No chat sessions found</h6>
+              <p class="text-sm text-secondary">Chat sessions will appear here when users interact with the digital human</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    sessions.forEach((session, index) => {
+      const firstMessage = session.first_user_message ?
+        (session.first_user_message.length > 40 ? session.first_user_message.substring(0, 40) + '...' : session.first_user_message) :
+        'No first message';
+
+      const createdDate = session.created_at ? new Date(session.created_at) : null;
+      const dateStr = createdDate ? createdDate.toLocaleDateString('en-GB') : 'Unknown';
+      const timeStr = createdDate ? createdDate.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'}) : '';
+
+      tbody.innerHTML += `
+        <tr data-session-uuid="${session.session_uuid}">
+          <td>
+            <div class="d-flex px-2 py-1">
+              <div>
+                <div class="avatar avatar-sm me-3 bg-gradient-info">
+                  <span class="text-white text-xs font-weight-bold">${index + 1}</span>
+                </div>
+              </div>
+              <div class="d-flex flex-column justify-content-center">
+                <h6 class="mb-0 text-sm">
+                  <code class="text-xs">${session.session_uuid.substring(0, 12)}...</code>
+                </h6>
+                <p class="text-xs text-secondary mb-0" title="${session.first_user_message || ''}">${firstMessage}</p>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex flex-column justify-content-center">
+              <h6 class="mb-0 text-sm">${session.message_count}</h6>
+              <p class="text-xs text-secondary mb-0">messages</p>
+            </div>
+          </td>
+          <td class="align-middle text-center text-sm">
+            <span class="badge badge-sm bg-gradient-success">Active</span>
+          </td>
+          <td class="align-middle text-center">
+            <span class="text-secondary text-xs font-weight-bold">${dateStr}</span>
+            <br>
+            <span class="text-xs text-secondary">${timeStr}</span>
+          </td>
+          <td class="align-middle">
+            <div class="ms-auto">
+              <button class="btn btn-link text-info text-gradient px-3 mb-0" onclick="viewSession('${session.session_uuid}')">
+                <i class="material-icons text-sm me-2">visibility</i>View
+              </button>
+              <button class="btn btn-link text-danger text-gradient px-3 mb-0" onclick="deleteSession('${session.session_uuid}', ${session.message_count})">
+                <i class="material-icons text-sm me-2">delete</i>Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  // Export sessions function
+  function exportSessions() {
+    const sessions = {{ sessions|tojson }};
+    const csvContent = "data:text/csv;charset=utf-8," +
+      "Session UUID,Message Count,First Message,Last Message,Created At\n" +
+      sessions.map(s => `"${s.session_uuid}","${s.message_count}","${s.first_user_message || ''}","${s.last_user_message || ''}","${s.created_at || ''}"`).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `giziai_chat_sessions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Export single session function
+  function exportSession() {
+    if (!currentViewSessionUuid) return;
+
+    // Implementation for exporting single session
+    alert('Export single session functionality - to be implemented');
+  }
+
+  // Show alert function
+  function showAlert(type, message) {
+    const alertClass = type === 'success' ? 'bg-gradient-success' :
+                      type === 'danger' ? 'bg-gradient-danger' :
+                      type === 'warning' ? 'bg-gradient-warning' : 'bg-gradient-info';
+
+    const alertHtml = `
+      <div class="alert ${alertClass} alert-dismissible text-white fade show" role="alert">
+        <span class="text-sm">${message}</span>
+        <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+    `;
+
+    // Remove existing alerts
+    $('.alert').remove();
+
+    // Add new alert
+    $('.container-fluid.py-4').prepend(alertHtml);
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+      $('.alert').fadeOut();
+    }, 5000);
+  }
+
+  // Initialize page
+  document.addEventListener('DOMContentLoaded', function() {
+    updateSessionStats();
+    console.log('✅ Chat History page loaded');
+
+    // Auto-refresh every 30 seconds
+    setInterval(refreshSessions, 30000);
+  });
+</script>
+{% endblock javascripts %}

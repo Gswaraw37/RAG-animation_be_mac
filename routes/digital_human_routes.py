@@ -209,12 +209,7 @@ def create_fallback_lipsync():
 def test_endpoint():
     """Test endpoint untuk memastikan service berjalan"""
     return jsonify({
-        "status": "Digital Human service is running", 
-        "timestamp": datetime.now().isoformat(),
-        "features": {
-            "text_to_speech": "Available (fallback mode)",
-            "lip_sync": "Available (fallback mode)", 
-            "speech_to_text": "Not implemented (placeholder)",
-            "emotion_analysis": "Available"
-        }
+        "status": "OK",
+        "message": "Digital Human service is running", 
+        "timestamp": datetime.now().isoformat()
     })

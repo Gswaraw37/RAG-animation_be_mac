@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_cors import CORS
 from config import Config
 from database import create_tables, add_admin_user_if_not_exists
@@ -7,7 +7,6 @@ import logging
 import os
 
 # Impor Blueprint
-from routes.main_routes import main_bp
 from routes.auth_routes import auth_bp
 from routes.admin_routes import admin_bp
 from routes.digital_human_routes import digital_human_bp
@@ -48,11 +47,14 @@ def create_app():
         os.makedirs("temp", exist_ok=True)
         app.logger.info("Direktori untuk digital human telah dibuat.")
 
-    app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp)
     app.register_blueprint(digital_human_bp)
 
+    @app.route('/')
+    def index():
+        return redirect(url_for('admin.dashboard'))
+    
     app.logger.info("Aplikasi GiziAI berhasil dikonfigurasi dan siap dijalankan.")
     return app
 

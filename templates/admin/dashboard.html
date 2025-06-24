@@ -1,0 +1,317 @@
+{% extends "layouts/base.html" %} {% block title %}Dashboard - GiziAI Admin{%
+endblock title %} {% block content %}
+<div class="row">
+  <!-- Statistics Cards -->
+  <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+    <div class="card">
+      <div class="card-header p-3 pt-2">
+        <div
+          class="icon icon-lg icon-shape bg-gradient-dark shadow-dark text-center border-radius-xl mt-n4 position-absolute"
+        >
+          <i class="material-icons opacity-10">folder</i>
+        </div>
+        <div class="text-end pt-1">
+          <p class="text-sm mb-0 text-capitalize">Total Files</p>
+          <h4 class="mb-0">{{ stats.total_files or 0 }}</h4>
+        </div>
+      </div>
+      <hr class="dark horizontal my-0" />
+      <div class="card-footer p-3"></div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+    <div class="card">
+      <div class="card-header p-3 pt-2">
+        <div
+          class="icon icon-lg icon-shape bg-gradient-primary shadow-primary text-center border-radius-xl mt-n4 position-absolute"
+        >
+          <i class="material-icons opacity-10">chat</i>
+        </div>
+        <div class="text-end pt-1">
+          <p class="text-sm mb-0 text-capitalize">Chat Sessions</p>
+          <h4 class="mb-0">{{ stats.total_sessions or 0 }}</h4>
+        </div>
+      </div>
+      <hr class="dark horizontal my-0" />
+      <div class="card-footer p-3"></div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+    <div class="card">
+      <div class="card-header p-3 pt-2">
+        <div
+          class="icon icon-lg icon-shape bg-gradient-success shadow-success text-center border-radius-xl mt-n4 position-absolute"
+        >
+          <i class="material-icons opacity-10">email</i>
+        </div>
+        <div class="text-end pt-1">
+          <p class="text-sm mb-0 text-capitalize">Total Messages</p>
+          <h4 class="mb-0">{{ stats.total_messages or 0 }}</h4>
+        </div>
+      </div>
+      <hr class="dark horizontal my-0" />
+      <div class="card-footer p-3"></div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6">
+    <div class="card">
+      <div class="card-header p-3 pt-2">
+        <div
+          class="icon icon-lg icon-shape bg-gradient-info shadow-info text-center border-radius-xl mt-n4 position-absolute"
+        >
+          <i class="material-icons opacity-10">weekend</i>
+        </div>
+        <div class="text-end pt-1">
+          <p class="text-sm mb-0 text-capitalize">System Status</p>
+          <h4 class="mb-0 text-success">Online</h4>
+        </div>
+      </div>
+      <hr class="dark horizontal my-0" />
+      <div class="card-footer p-3"></div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-lg-8 col-md-6 mb-md-0">
+    <div class="card">
+      <div class="card-header pb-0">
+        <div class="row">
+          <div class="col-lg-6 col-7">
+            <h6>Selamat Datang di GiziAI Admin Panel</h6>
+            <p class="text-sm mb-0">
+              <i class="fa fa-check text-info" aria-hidden="true"></i>
+              <span class="font-weight-bold ms-1">Ready for operations</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body px-0 pb-2">
+        <div class="row">
+          <div class="col-md-12 ms-4">
+            <h6 class="mb-3">Quick Actions:</h6>
+            <div class="d-flex">
+              <a
+                href="{{ url_for('admin.files') }}"
+                class="btn btn-outline-primary btn-sm mb-0 me-2"
+              >
+                <i class="material-icons text-sm">cloud_upload</i
+                >&nbsp;&nbsp;Upload File
+              </a>
+              <a
+                href="{{ url_for('admin.chat_history') }}"
+                class="btn btn-outline-info btn-sm mb-0 me-2"
+              >
+                <i class="material-icons text-sm">chat</i>&nbsp;&nbsp;View Chats
+              </a>
+              <a
+                href="/api/health"
+                target="_blank"
+                class="btn btn-outline-secondary btn-sm mb-0"
+              >
+                <i class="material-icons text-sm">api</i>&nbsp;&nbsp;API Status
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Files -->
+  <div class="col-lg-4 col-md-6">
+    <div class="card h-100">
+      <div class="card-header pb-0">
+        <h6>Recent Files</h6>
+        <p class="text-sm">
+          <i class="fa fa-arrow-up text-success" aria-hidden="true"></i>
+          <span class="font-weight-bold"
+            >{{ stats.recent_files|length if stats.recent_files else 0 }}</span
+          >
+          new files this week
+        </p>
+      </div>
+      <div class="card-body p-3">
+        {% if stats.recent_files %} {% for file in stats.recent_files %}
+        <div class="d-flex mb-2">
+          <div class="me-3">
+            {% if file.file_type == 'pdf' %}
+            <i class="material-icons text-danger">picture_as_pdf</i>
+            {% else %}
+            <i class="material-icons text-primary">description</i>
+            {% endif %}
+          </div>
+          <div class="d-flex flex-column justify-content-center">
+            <h6 class="mb-0 text-sm">
+              {{ file.filename[:25] }}{{ '...' if file.filename|length > 25 else
+              '' }}
+            </h6>
+            <p class="text-xs text-secondary mb-0">
+              {{ file.uploaded_at.strftime('%d %b %Y') if file.uploaded_at else
+              'Unknown date' }}
+            </p>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="text-center mt-3">
+          <a
+            href="{{ url_for('admin.files') }}"
+            class="btn btn-primary btn-sm mb-0"
+            >View All Files</a
+          >
+        </div>
+        {% else %}
+        <div class="text-center">
+          <i class="material-icons opacity-5" style="font-size: 3rem"
+            >folder_open</i
+          >
+          <p class="text-sm text-secondary">No files uploaded yet</p>
+          <a
+            href="{{ url_for('admin.files') }}"
+            class="btn btn-primary btn-sm mb-0"
+            >Upload First File</a
+          >
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row my-4">
+  <!-- Recent Sessions -->
+  <div class="col-lg-8 mb-md-0 mb-4">
+    <div class="card">
+      <div class="card-header pb-0">
+        <div class="row">
+          <div class="col-lg-6 col-7">
+            <h6>Recent Chat Sessions</h6>
+            <p class="text-sm mb-0">
+              <i class="fa fa-check text-info" aria-hidden="true"></i>
+              <span class="font-weight-bold ms-1"
+                >{{ stats.recent_sessions|length if stats.recent_sessions else 0
+                }}</span
+              >
+              active sessions
+            </p>
+          </div>
+          <div class="col-lg-6 col-5 my-auto text-end">
+            <a
+              href="{{ url_for('admin.chat_history') }}"
+              class="btn btn-outline-primary btn-sm mb-0"
+              >View All</a
+            >
+          </div>
+        </div>
+      </div>
+      <div class="card-body px-0 pb-2">
+        {% if stats.recent_sessions %}
+        <div class="table-responsive p-0">
+          <table class="table align-items-center mb-0">
+            <thead>
+              <tr>
+                <th
+                  class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                >
+                  Session
+                </th>
+                <th
+                  class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                >
+                  Messages
+                </th>
+                <th
+                  class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                >
+                  Date
+                </th>
+                <th class="text-secondary opacity-7"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for session in stats.recent_sessions %}
+              <tr>
+                <td>
+                  <div class="d-flex px-2 py-1">
+                    <div>
+                      <div class="avatar avatar-sm me-3 bg-gradient-info">
+                        <i class="material-icons opacity-10 text-white">chat</i>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-column justify-content-center">
+                      <h6 class="mb-0 text-sm">
+                        {{ session.session_uuid[:12] }}...
+                      </h6>
+                      <p class="text-xs text-secondary mb-0">
+                        {{ session.first_user_message[:30] if
+                        session.first_user_message else 'No message' }}{{ '...'
+                        if session.first_user_message and
+                        session.first_user_message|length > 30 else '' }}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <p class="text-xs font-weight-bold mb-0">
+                    {{ session.message_count }}
+                  </p>
+                  <p class="text-xs text-secondary mb-0">messages</p>
+                </td>
+                <td class="align-middle text-center text-sm">
+                  <span class="text-secondary text-xs font-weight-bold">
+                    {{ session.created_at.strftime('%d %b') if
+                    session.created_at else 'Unknown' }}
+                  </span>
+                </td>
+                <td class="align-middle">
+                  <a
+                    href="javascript:;"
+                    class="text-secondary font-weight-bold text-xs"
+                    data-toggle="tooltip"
+                    data-original-title="View session"
+                  >
+                    View
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="material-icons opacity-5" style="font-size: 3rem"
+            >chat_bubble_outline</i
+          >
+          <p class="text-sm text-secondary">No chat sessions yet</p>
+          <p class="text-xs text-secondary">
+            Sessions will appear here when users interact with the digital human
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} {% block javascripts %}
+<script>
+  setInterval(function () {}, 30000);
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const cards = document.querySelectorAll(".card");
+    cards.forEach((card) => {
+      card.addEventListener("mouseenter", function () {
+        this.style.transform = "translateY(-2px)";
+        this.style.transition = "transform 0.2s ease";
+      });
+
+      card.addEventListener("mouseleave", function () {
+        this.style.transform = "translateY(0)";
+      });
+    });
+  });
+</script>
+{% endblock javascripts %}
