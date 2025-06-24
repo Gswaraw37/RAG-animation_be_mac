@@ -1,0 +1,7 @@
+.env
+venv
+temp
+model
+chroma_db
+static/uploads
+audios

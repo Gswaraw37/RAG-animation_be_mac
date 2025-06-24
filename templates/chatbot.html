@@ -1,0 +1,286 @@
+{% extends "base.html" %} {% block title %}Chatbot Gizi AI{% endblock %} {%
+block head_extra %}
+<style>
+  #chatbox {
+    height: calc(100vh - 300px); /* Adjust height as needed */
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #fdfdff; /* Slightly off-white for chatbox */
+  }
+  .message-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 0.75rem;
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+  .user-message {
+    background-color: #3b82f6; /* Blue for user */
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 0.2rem;
+  }
+  .bot-message {
+    background-color: #e5e7eb; /* Light gray for bot */
+    color: #1f2937; /* Dark gray text for bot */
+    margin-right: auto;
+    border-bottom-left-radius: 0.2rem;
+  }
+  .typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #9ca3af;
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+  .typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+  .typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+  @keyframes bounce {
+    0%,
+    80%,
+    100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
+  #chat-input-container {
+    display: flex;
+    margin-top: 1rem;
+  }
+  #chat-input {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem 0 0 0.5rem;
+    outline: none;
+  }
+  #send-button {
+    padding: 0.75rem 1.5rem;
+    background-color: #2563eb; /* Darker blue for send button */
+    color: white;
+    border: none;
+    border-radius: 0 0.5rem 0.5rem 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  #send-button:hover {
+    background-color: #1d4ed8;
+  }
+  #send-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="bg-white shadow-xl rounded-lg p-6 md:p-8">
+  <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">
+    Chat dengan Ahli Gizi AI
+  </h1>
+  <p class="text-gray-600 mb-6 text-center">
+    Ajukan pertanyaan Anda seputar gizi dan kesehatan. Saya akan berusaha
+    menjawabnya!
+  </p>
+
+  <div
+    id="chat-app-data"
+    data-session-uuid="{{ session.get('chat_session_uuid', '') }}"
+    data-url-get-history="{{ url_for('main.get_history') }}"
+    data-url-handle-chat="{{ url_for('main.handle_chat') }}"
+    style="display: none"
+  ></div>
+
+  <div id="chatbox" class="mb-4">
+    <div class="message-bubble bot-message">
+      Halo! Saya GiziAI, asisten virtual Anda untuk informasi gizi dan
+      kesehatan. Apa yang ingin Anda tanyakan hari ini?
+    </div>
+  </div>
+
+  <div id="typing-indicator" class="hidden mb-2 items-center">
+    <span class="text-sm text-gray-500 mr-2">GiziAI sedang mengetik...</span>
+    <span class="typing-indicator-dot"></span>
+    <span class="typing-indicator-dot"></span>
+    <span class="typing-indicator-dot"></span>
+  </div>
+
+  <div id="chat-input-container">
+    <input
+      type="text"
+      id="chat-input"
+      placeholder="Ketik pertanyaan Anda di sini..."
+      class="focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    />
+    <button id="send-button">Kirim</button>
+  </div>
+</div>
+{% endblock %} {% block scripts_extra %}
+<script>
+  const chatbox = document.getElementById("chatbox");
+  const chatInput = document.getElementById("chat-input");
+  const sendButton = document.getElementById("send-button");
+  const typingIndicator = document.getElementById("typing-indicator");
+
+  // Ambil data dari elemen HTML
+  const chatAppData = document.getElementById("chat-app-data").dataset;
+
+  let sessionUUID = chatAppData.sessionUuid;
+  // Tangani kasus di mana Jinja mungkin me-render None sebagai string "None" atau "none", atau string kosong
+  if (sessionUUID === "None" || sessionUUID === "none" || !sessionUUID) {
+    sessionUUID = ""; // Default ke string kosong jika tidak valid
+  }
+
+  const handleChatUrl = chatAppData.urlHandleChat;
+  const getHistoryBaseUrl = chatAppData.urlGetHistory;
+
+  // Fungsi untuk menambahkan pesan ke chatbox
+  function addMessage(message, sender) {
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add(
+      "message-bubble",
+      sender === "user" ? "user-message" : "bot-message"
+    );
+
+    const textNode = document.createTextNode(message);
+    messageDiv.appendChild(textNode);
+
+    chatbox.appendChild(messageDiv);
+    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll ke bawah
+  }
+
+  // Fungsi untuk mengirim pesan ke backend
+  async function sendMessage() {
+    const userInput = chatInput.value.trim();
+    if (userInput === "") return;
+
+    addMessage(userInput, "user");
+    chatInput.value = "";
+    sendButton.disabled = true;
+    typingIndicator.classList.remove("hidden");
+    typingIndicator.classList.add("flex");
+
+    try {
+      // Gunakan URL yang sudah diambil dari data attribute
+      if (!handleChatUrl) {
+        console.error("Error: URL untuk handle_chat tidak ditemukan.");
+        addMessage("Kesalahan konfigurasi: Tidak dapat mengirim pesan.", "bot");
+        return;
+      }
+
+      const response = await fetch(handleChatUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userInput,
+          session_uuid: sessionUUID,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: "Gagal memproses permintaan." }));
+        throw new Error(
+          errorData.detail || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+      addMessage(data.reply, "bot");
+      if (data.session_uuid && sessionUUID !== data.session_uuid) {
+        sessionUUID = data.session_uuid;
+        // Update data attribute jika sessionUUID berubah (opsional, tergantung kebutuhan)
+        // document.getElementById('chat-app-data').dataset.sessionUuid = sessionUUID;
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      addMessage(
+        `Maaf, terjadi kesalahan: ${error.message}. Coba lagi nanti.`,
+        "bot"
+      );
+    } finally {
+      sendButton.disabled = false;
+      typingIndicator.classList.add("hidden");
+      typingIndicator.classList.remove("flex");
+      chatInput.focus();
+    }
+  }
+
+  sendButton.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", function (event) {
+    if (event.key === "Enter") {
+      sendMessage();
+    }
+  });
+
+  // Muat riwayat chat jika session UUID sudah ada
+  async function loadChatHistory() {
+    if (!sessionUUID) {
+      // console.log("Tidak ada session UUID yang valid, tidak memuat histori.");
+      return;
+    }
+    if (!getHistoryBaseUrl) {
+      console.error("Error: URL untuk get_history tidak ditemukan.");
+      // Anda bisa menampilkan pesan error ke pengguna jika perlu
+      // addMessage("Kesalahan konfigurasi: Tidak dapat memuat riwayat chat.", 'bot');
+      return;
+    }
+
+    // console.log("Memuat histori chat untuk session:", sessionUUID);
+    typingIndicator.classList.remove("hidden");
+    typingIndicator.classList.add("flex");
+
+    try {
+      const fetchUrl = `${getHistoryBaseUrl}?session_uuid=${encodeURIComponent(
+        sessionUUID
+      )}`;
+      // console.log("loadChatHistory: Fetching URL:", fetchUrl);
+
+      const response = await fetch(fetchUrl);
+      if (!response.ok) {
+        throw new Error(`Gagal mengambil histori: ${response.status}`);
+      }
+      const history = await response.json();
+      if (history && history.length > 0) {
+        const welcomeMessage = chatbox.querySelector(".bot-message");
+        if (
+          chatbox.children.length === 1 &&
+          welcomeMessage &&
+          welcomeMessage.textContent.includes("Halo! Saya GiziAI")
+        ) {
+          welcomeMessage.remove();
+        }
+
+        history.forEach((msg) => {
+          addMessage(msg.content, msg.role === "human" ? "user" : "bot");
+        });
+        // console.log("Histori chat berhasil dimuat.");
+      } else {
+        // console.log("Tidak ada histori chat untuk session ini atau histori kosong.");
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    } finally {
+      typingIndicator.classList.add("hidden");
+      typingIndicator.classList.remove("flex");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // Pastikan DOM siap sebelum mengakses chatAppData
+    // Inisialisasi ulang variabel di sini jika diperlukan, atau pastikan scope-nya benar
+    // Variabel sessionUUID, handleChatUrl, getHistoryBaseUrl sudah di-scope global di dalam <script>
+    loadChatHistory();
+  });
+</script>
+{% endblock %}
