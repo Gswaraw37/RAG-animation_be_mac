@@ -3,6 +3,26 @@ from mysql.connector import Error
 import bcrypt
 from config import Config
 from datetime import datetime
+import os
+
+MAX_FILE_SIZE = 30 * 1024 * 1024
+
+def validate_file_upload(file_path=None, file_size=None, filename=None):
+    try:
+        if file_path and os.path.exists(file_path):
+            actual_file_size = os.path.getsize(file_path)
+        elif file_size is not None:
+            actual_file_size = file_size
+        else:
+            return False, "File tidak ditemukan"
+        
+        if actual_file_size > MAX_FILE_SIZE:
+            size_mb = actual_file_size / (1024 * 1024)
+            return False, f"File terlalu besar ({size_mb:.1f} MB). Maksimal 50 MB"
+        
+        return True, "Valid"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
 
 def get_db_connection():
     """Membuat dan mengembalikan koneksi ke database MySQL."""
@@ -38,8 +58,8 @@ def create_tables():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
+                username VARCHAR(7) UNIQUE NOT NULL,
+                password VARCHAR(100) NOT NULL,
                 is_admin BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -50,8 +70,8 @@ def create_tables():
             CREATE TABLE IF NOT EXISTS uploaded_files (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 filename VARCHAR(255) NOT NULL,
-                filepath VARCHAR(512) NOT NULL,
-                file_type VARCHAR(50),
+                filepath VARCHAR(255) NOT NULL,
+                file_type VARCHAR(5),
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 processed_at TIMESTAMP NULL,
                 uploader_id INT,
@@ -92,7 +112,7 @@ def add_admin_user_if_not_exists(username, password):
 
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         cursor.execute(
-            "INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, %s)",
+            "INSERT INTO users (username, password, is_admin) VALUES (%s, %s, %s)",
             (username, hashed_password.decode('utf-8'), True)
         )
         conn.commit()
@@ -113,7 +133,7 @@ def verify_user(username, password):
     try:
         cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cursor.fetchone()
-        if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
             return user
         return None
     except Error as e:

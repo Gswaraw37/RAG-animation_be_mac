@@ -5,7 +5,7 @@ from functools import wraps
 import uuid
 
 from config import Config
-from database import log_uploaded_file, get_all_uploaded_files, update_file_processed_status, get_all_uploaded_files, insert_file_and_return_id, delete_file_from_db, get_chat_sessions_summary, delete_chat_history_by_session, get_file_by_id, get_total_message_count
+from database import log_uploaded_file, get_all_uploaded_files, update_file_processed_status, get_all_uploaded_files, insert_file_and_return_id, delete_file_from_db, get_chat_sessions_summary, delete_chat_history_by_session, get_file_by_id, get_total_message_count, MAX_FILE_SIZE
 from rag_system import process_document_to_vectorstore, process_pending_documents
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -119,6 +119,17 @@ def api_upload_file():
             os.makedirs(upload_folder, exist_ok=True)
             
             filepath = os.path.join(upload_folder, unique_filename)
+            
+            file.seek(0, 2)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > MAX_FILE_SIZE:
+                return jsonify({
+                    "success": False,
+                    "message": f"File terlalu besar ({file_size/1024/1024:.1f} MB). Maksimal 50 MB"
+                }), 400
+            
             file.save(filepath)
             
             file_record_id = insert_file_and_return_id(filename, filepath, file_extension)
@@ -303,6 +314,14 @@ def upload_file():
                 os.makedirs(Config.UPLOAD_FOLDER)
                 current_app.logger.info(f"Folder upload dibuat di: {Config.UPLOAD_FOLDER}")
 
+            file.seek(0, 2)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > MAX_FILE_SIZE:
+                flash(f"File terlalu besar ({file_size/1024/1024:.1f} MB). Maksimal 50 MB", 'error')
+                return redirect(request.url)
+            
             file.save(filepath)
             current_app.logger.info(f"File '{filename}' berhasil disimpan di '{filepath}'")
 
