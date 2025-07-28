@@ -1,0 +1,103 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rag_animation-app
+    container_name: raganimation-app
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+      - MYSQL_HOST=db
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DB=${MYSQL_DB}
+      - MYSQL_PORT=3306
+      - LLM_MODEL_PATH=/app/model/Nusantara-2.7b-Indo-Chat-v0.2.i1-Q6_K.gguf
+      - MODEL_CACHE_DIR=/app/model
+      - EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-small
+      - CHROMA_PERSIST_DIRECTORY=/app/chroma_db
+      - UPLOADS_FOLDER=/app/static/uploads
+      - COLLECTION_NAME=giziai_rag
+      - RHUBARB_PATH=/app/bin/linux/rhubarb
+      - AUDIO_OUTPUT_DIR=/app/audios
+      - TEMP_DIR=/app/temp
+      - TTS_PROVIDER=${TTS_PROVIDER}
+      - ELEVEN_LABS_API_KEY=${ELEVEN_LABS_API_KEY}
+      - ELEVEN_LABS_VOICE_ID=${ELEVEN_LABS_VOICE_ID}
+      - ELEVEN_LABS_MODEL_ID=${ELEVEN_LABS_MODEL_ID}
+      - HUGGINGFACEHUB_API_TOKEN=${HUGGINGFACEHUB_API_TOKEN}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - .:/app
+      - ./model:/app/model
+      - ./chroma_db:/app/chroma_db
+      - ./static/uploads:/app/static/uploads
+      - ./audios:/app/audios
+      - ./temp:/app/temp
+    depends_on:
+      - db
+    networks:
+      - raganimation
+
+  web:
+    image: nginx:alpine
+    container_name: raganimation-nginx
+    restart: unless-stopped
+    ports:
+      - "8006:80"
+      - "8443:443"
+    volumes:
+      - .:/app
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - raganimation
+
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: raganimation-db
+    restart: unless-stopped
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - raganimation
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    platform: linux/amd64
+    container_name: raganimation-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8007:80"
+    depends_on:
+      - db
+    networks:
+      - raganimation
+
+networks:
+  raganimation:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
