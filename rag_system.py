@@ -134,7 +134,7 @@ def initialize_rag_components():
                     temperature=0.5,
                     top_p=0.95,
                     repeat_penalty=1.2,
-                    stop=["Question:", "\n\n", "Human:", "Pertanyaan:"],
+                    stop=["Question:", "Human:", "Pertanyaan:", "Sebuah pertanyaan:", "Jawaban:"],
                     max_tokens=256,
                     n_ctx=2048,
                     n_batch=256,

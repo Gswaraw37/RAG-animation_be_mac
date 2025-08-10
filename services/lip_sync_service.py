@@ -32,9 +32,9 @@ class LipSyncService:
     def _find_rhubarb_executable(self):
         """Cari executable Rhubarb Lip-Sync"""
         possible_paths = [
-            "./bin/rhubarb",
+            "./bin/linux/rhubarb",
             "./rhubarb/rhubarb",
-            "rhubarb",
+            "./bin/mac/rhubarb",
             "./bin/rhubarb.exe",
         ]
         

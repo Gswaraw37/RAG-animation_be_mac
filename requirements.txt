@@ -17,6 +17,6 @@ flask-cors
 requests
 pydub
 elevenlabs
-openai-whisper
 python-dotenv
-gunicorn
+waitress
+psutil
